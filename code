@@ -1,0 +1,124 @@
+import sqlite3
+import random
+import re
+from datetime import datetime
+
+def create_tables():
+    conn = sqlite3.connect("banking_system.db")
+    cursor = conn.cursor()
+
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS users (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT NOT NULL,
+        account_number TEXT UNIQUE NOT NULL,
+        dob TEXT NOT NULL,
+        city TEXT NOT NULL,
+        password TEXT NOT NULL,
+        balance REAL NOT NULL,
+        contact_number TEXT UNIQUE NOT NULL,
+        email TEXT UNIQUE NOT NULL,
+        address TEXT NOT NULL,
+        status TEXT DEFAULT 'active'
+    )
+    """)
+
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS transactions (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        account_number TEXT NOT NULL,
+        type TEXT NOT NULL,
+        amount REAL NOT NULL,
+        date TEXT NOT NULL,
+        FOREIGN KEY (account_number) REFERENCES users (account_number)
+    )
+    """)
+
+    conn.commit()
+    conn.close()
+
+def validate_email(email):
+    pattern = r"^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$"
+    return re.match(pattern, email)
+
+def validate_contact(contact):
+    return re.match(r"^[0-9]{10}$", contact)
+
+def validate_password(password):
+    return len(password) >= 8 and re.search(r"[A-Z]", password) and re.search(r"[0-9]", password)
+
+def add_user():
+    conn = sqlite3.connect("banking_system.db")
+    cursor = conn.cursor()
+
+    name = input("Enter Name: ")
+    dob = input("Enter DOB (YYYY-MM-DD): ")
+    city = input("Enter City: ")
+    contact = input("Enter Contact Number: ")
+    email = input("Enter Email ID: ")
+    address = input("Enter Address: ")
+
+    if not validate_contact(contact):
+        print("Invalid contact number. Must be 10 digits.")
+        return
+
+    if not validate_email(email):
+        print("Invalid email format.")
+        return
+
+    password = input("Enter Password: ")
+    if not validate_password(password):
+        print("Password must be at least 8 characters long, contain an uppercase letter and a number.")
+        return
+
+    balance = float(input("Enter Initial Balance (Minimum 2000): "))
+    if balance < 2000:
+        print("Initial balance must be at least 2000.")
+        return
+
+    account_number = str(random.randint(1000000000, 9999999999))
+
+    cursor.execute("""
+    INSERT INTO users (name, account_number, dob, city, password, balance, contact_number, email, address)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+    """, (name, account_number, dob, city, password, balance, contact, email, address))
+
+    conn.commit()
+    print(f"User added successfully. Account Number: {account_number}")
+    conn.close()
+
+def show_users():
+    conn = sqlite3.connect("banking_system.db")
+    cursor = conn.cursor()
+
+    cursor.execute("SELECT * FROM users")
+    users = cursor.fetchall()
+
+    for user in users:
+        print(f"ID: {user[0]}, Name: {user[1]}, Account Number: {user[2]}, DOB: {user[3]}, City: {user[4]}, Balance: {user[6]}, Contact: {user[7]}, Email: {user[8]}, Address: {user[9]}, Status: {user[10]}")
+
+    conn.close()
+
+def main():
+    create_tables()
+
+    while True:
+        print("\nBANKING SYSTEM")
+        print("1. Add User")
+        print("2. Show Users")
+        print("3. Exit")
+
+        choice = input("Enter your choice: ")
+
+        if choice == "1":
+            add_user()
+        elif choice == "2":
+            show_users()
+        elif choice == "3":
+            print("Exiting...")
+            break
+        else:
+            print("Invalid choice. Please try again.")
+
+if __name__ == "__main__":
+    main()
